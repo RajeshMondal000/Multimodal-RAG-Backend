@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "red-recipe-61d2",
+	"name": "rag-pdf-cloud",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-07-28",
 	"compatibility_flags": [

@@ -1,5 +1,5 @@
 {
-  "name": "red-recipe-61d2",
+  "name": "rag-pdf-cloud",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -15,5 +15,13 @@
     "typescript": "^5.5.2",
     "vitest": "~3.2.0",
     "wrangler": "^4.114.0"
+  },
+  "dependencies": {
+    "@google/genai": "^2.13.0",
+    "@qdrant/js-client-rest": "^1.18.0",
+    "hono": "^4.12.32",
+    "langchain": "^1.5.4",
+    "unpdf": "^1.8.0",
+    "zod": "^4.4.3"
   }
 }
