@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 
 import { randomUUID } from "crypto";
-
-import { PdfService } from "../services/PdfService";
 import { ChunkService } from "../services/ChunkService";
 import { GeminiService } from "../services/GeminiService";
 import { QdrantService } from "../services/QdrantService";
@@ -13,6 +11,7 @@ import {
   COLLECTION_NAME,
   VECTOR_SIZE,
 } from "../config";
+
 
 type Bindings = {
   GEMINI_API_KEY: string;
@@ -31,13 +30,29 @@ upload.post("/", async (c) => {
       return c.json(
         {
           success: false,
-          error: "No PDF uploaded.",
+          error: "No file uploaded.",
+        },
+        400
+      );
+    }
+    const supportedTypes = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+    ];
+
+    if (!supportedTypes.includes(file.type)) {
+      return c.json(
+        {
+          success: false,
+          error: `Unsupported file type: ${file.type}`,
         },
         400
       );
     }
     const fileName = file.name;
-    const buffer = await file.arrayBuffer();
 
     const qdrant = new QdrantService(
       QDRANT_URL,
@@ -46,26 +61,32 @@ upload.post("/", async (c) => {
     );
 
     await qdrant.ensureCollection(VECTOR_SIZE);
+    const gemini = new GeminiService(
+      c.env.GEMINI_API_KEY
+    );
 
     const rag = new RAGService(
-      new PdfService(),
       new ChunkService(),
-      new GeminiService(c.env.GEMINI_API_KEY),
+      gemini,
       qdrant
     );
 
     const documentId = randomUUID();
 
+    const uploadedAt = new Date().toISOString();
+
     const chunks = await rag.ingestDocument(
       documentId,
       fileName,
-      buffer
+      uploadedAt,
+      file
     );
 
     return c.json({
       success: true,
       documentId,
       fileName,
+      uploadedAt,
       chunks,
     });
   } catch (error) {

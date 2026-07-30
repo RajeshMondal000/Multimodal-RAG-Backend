@@ -7,7 +7,8 @@ export async function ingestChunks(
     gemini: GeminiService,
     qdrant: QdrantService,
     chunks: Chunk[],
-    fileName: string
+    fileName: string,
+    uploadedAt: string
 ): Promise<number> {
 
     const embedded = await embedChunks(
@@ -17,6 +18,7 @@ export async function ingestChunks(
 
     embedded.forEach((chunk) => {
         chunk.fileName = fileName;
+        chunk.uploadedAt = uploadedAt;
     });
 
     await qdrant.upsertChunks(embedded);

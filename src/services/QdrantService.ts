@@ -13,6 +13,7 @@ export interface SearchResult {
 export interface DocumentInfo {
   documentId: string;
   fileName: string;
+  uploadedAt: string;
   chunks: number;
 }
 
@@ -69,6 +70,7 @@ export class QdrantService {
       payload: {
         documentId: chunk.documentId,
         fileName: chunk.fileName,
+        uploadedAt: chunk.uploadedAt,
         page: chunk.page,
         index: chunk.index,
         text: chunk.text,
@@ -142,6 +144,7 @@ export class QdrantService {
         map.set(documentId, {
           documentId,
           fileName,
+          uploadedAt: String(payload.uploadedAt ?? ""),
           chunks: 0,
         });
       }

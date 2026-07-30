@@ -1,26 +1,30 @@
-import { PdfService } from "./PdfService";
 import { ChunkService } from "./ChunkService";
 import { GeminiService } from "./GeminiService";
 import { QdrantService } from "./QdrantService";
 
 import { ingestChunks } from "../rag/ingestion";
+import { ParserFactory } from "./parsers/ParserFactory";
 
 export class RAGService {
   constructor(
-    private pdfService: PdfService,
     private chunkService: ChunkService,
     private geminiService: GeminiService,
     private qdrantService: QdrantService
-  ) {}
+  ) { }
 
   async ingestDocument(
     documentId: string,
     fileName: string,
-    buffer: ArrayBuffer
+    uploadedAt: string,
+    file: File
   ): Promise<number> {
 
-    // 1. Extract text from PDF
-    const pages = await this.pdfService.extractPages(buffer);
+    const parser = ParserFactory.getParser(
+      file.type,
+      this.geminiService
+    );
+
+    const pages = await parser.parse(file);
 
     // 2. Split into chunks
     const chunks = pages.flatMap((page) =>
@@ -36,7 +40,8 @@ export class RAGService {
       this.geminiService,
       this.qdrantService,
       chunks,
-      fileName
+      fileName,
+      uploadedAt
     );
 
     return chunks.length;

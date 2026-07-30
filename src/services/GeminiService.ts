@@ -1,3 +1,4 @@
+import { uint8ArrayToBase64 } from "../utils/base64";
 import { GoogleGenAI } from "@google/genai";
 import {
   CHAT_MODEL,
@@ -32,6 +33,54 @@ export class GeminiService {
     const response = await this.client.models.generateContent({
       model: CHAT_MODEL,
       contents: prompt,
+    });
+
+    return response.text ?? "";
+  }
+
+  async analyzeImage(file: File): Promise<string> {
+
+    const bytes = new Uint8Array(
+      await file.arrayBuffer()
+    );
+
+    const response = await this.client.models.generateContent({
+      model: CHAT_MODEL,
+
+      contents: [
+        {
+          inlineData: {
+            mimeType: file.type,
+            data: uint8ArrayToBase64(bytes),
+          },
+        },
+
+        {
+          text: `
+                  You are preparing an image for a Retrieval-Augmented Generation (RAG) system.
+
+                  Extract all useful information.
+
+                  Include:
+
+                  - Visible text
+                  - OCR
+                  - Tables
+                  - Charts
+                  - Graphs
+                  - Diagrams
+                  - UI components
+                  - Flowcharts
+                  - Objects
+                  - Relationships
+                  - Important numbers
+                  - Labels
+                  - Captions
+
+                  Return only a structured textual description suitable for semantic search.
+                  `
+        }
+      ]
     });
 
     return response.text ?? "";
