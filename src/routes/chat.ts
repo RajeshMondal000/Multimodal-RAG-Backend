@@ -26,7 +26,7 @@ chat.post("/", async (c) => {
         const question = body.question?.trim();
         const documentId = body.documentId?.trim();
 
-        if (!documentId) {
+        if (!documentId ) {
             return c.json(
                 {
                     success: false,
@@ -35,7 +35,6 @@ chat.post("/", async (c) => {
                 400
             );
         }
-
         if (!question) {
             return c.json(
                 {

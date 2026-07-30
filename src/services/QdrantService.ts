@@ -7,6 +7,13 @@ export interface SearchResult {
   page: number;
   index: number;
   documentId: string;
+  fileName?: string;
+}
+
+export interface DocumentInfo {
+  documentId: string;
+  fileName: string;
+  chunks: number;
 }
 
 export class QdrantService {
@@ -32,28 +39,28 @@ export class QdrantService {
     const collections = await this.client.getCollections();
 
     const exists = collections.collections.some(
-        (c) => c.name === this.collection
+      (c) => c.name === this.collection
     );
 
     if (!exists) {
-        await this.client.createCollection(this.collection, {
-            vectors: {
-                size: vectorSize,
-                distance: "Cosine",
-            },
-        });
+      await this.client.createCollection(this.collection, {
+        vectors: {
+          size: vectorSize,
+          distance: "Cosine",
+        },
+      });
     }
 
     try {
-        await this.client.createPayloadIndex(this.collection, {
-            field_name: "documentId",
-            field_schema: "keyword",
-        });
+      await this.client.createPayloadIndex(this.collection, {
+        field_name: "documentId",
+        field_schema: "keyword",
+      });
     } catch (err) {
-        // Ignore "already exists" errors
-        console.log("documentId payload index already exists.");
+      // Ignore "already exists" errors
+      console.log("documentId payload index already exists.");
     }
-}
+  }
 
   async upsertChunks(chunks: Chunk[]): Promise<void> {
     const points = chunks.map((chunk) => ({
@@ -61,6 +68,7 @@ export class QdrantService {
       vector: chunk.embedding!,
       payload: {
         documentId: chunk.documentId,
+        fileName: chunk.fileName,
         page: chunk.page,
         index: chunk.index,
         text: chunk.text,
@@ -103,10 +111,73 @@ export class QdrantService {
         page: Number(point.payload?.page ?? 0),
         index: Number(point.payload?.index ?? 0),
         documentId: String(point.payload?.documentId ?? ""),
+        fileName: String(point.payload?.fileName ?? ""),
       }));
     } catch (err) {
       console.error(err);
       throw err;
     }
   }
+
+  async listDocuments(): Promise<DocumentInfo[]> {
+
+    const response = await this.client.scroll(this.collection, {
+      limit: 10000,
+      with_payload: true,
+      with_vector: false,
+    });
+
+    const map = new Map<string, DocumentInfo>();
+
+    for (const point of response.points) {
+
+      const payload = point.payload ?? {};
+
+      const documentId = String(payload.documentId ?? "");
+      const fileName = String(payload.fileName ?? "");
+
+      if (!documentId) continue;
+
+      if (!map.has(documentId)) {
+        map.set(documentId, {
+          documentId,
+          fileName,
+          chunks: 0,
+        });
+      }
+
+      map.get(documentId)!.chunks++;
+    }
+
+    return [...map.values()];
+  }
+
+
+  async deleteDocument(documentId: string): Promise<void> {
+
+    await this.client.delete(this.collection, {
+      wait: true,
+      filter: {
+        must: [
+          {
+            key: "documentId",
+            match: {
+              value: documentId,
+            },
+          },
+        ],
+      },
+    });
+  }
+
+
+  async deleteAllDocuments(): Promise<void> {
+
+    await this.client.delete(this.collection, {
+      wait: true,
+      filter: {},
+    });
+  }
+
+
 }

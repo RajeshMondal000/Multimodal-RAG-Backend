@@ -15,6 +15,7 @@ export class RAGService {
 
   async ingestDocument(
     documentId: string,
+    fileName: string,
     buffer: ArrayBuffer
   ): Promise<number> {
 
@@ -34,7 +35,8 @@ export class RAGService {
     await ingestChunks(
       this.geminiService,
       this.qdrantService,
-      chunks
+      chunks,
+      fileName
     );
 
     return chunks.length;

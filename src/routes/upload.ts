@@ -36,7 +36,7 @@ upload.post("/", async (c) => {
         400
       );
     }
-
+    const fileName = file.name;
     const buffer = await file.arrayBuffer();
 
     const qdrant = new QdrantService(
@@ -58,12 +58,14 @@ upload.post("/", async (c) => {
 
     const chunks = await rag.ingestDocument(
       documentId,
+      fileName,
       buffer
     );
 
     return c.json({
       success: true,
       documentId,
+      fileName,
       chunks,
     });
   } catch (error) {

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import upload from "./routes/upload";
 import chat from "./routes/chat";
+import documents from "./routes/documents";
 
 type Bindings = {
   GEMINI_API_KEY: string;
@@ -19,5 +20,6 @@ app.get("/", (c) => {
 
 app.route("/upload", upload);
 app.route("/chat", chat);
+app.route("/documents", documents);
 
 export default app;
