@@ -72,6 +72,8 @@ export class QdrantService {
         fileName: chunk.fileName,
         uploadedAt: chunk.uploadedAt,
         page: chunk.page,
+        
+        title: chunk.title,
         index: chunk.index,
         text: chunk.text,
       },

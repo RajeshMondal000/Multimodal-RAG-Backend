@@ -4,6 +4,7 @@ export interface Chunk {
     fileName?: string;
     uploadedAt?: string;
     page: number;
+    title?: string;
     index: number;
     text: string;
     embedding?: number[];

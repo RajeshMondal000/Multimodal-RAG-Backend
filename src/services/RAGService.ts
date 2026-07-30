@@ -19,8 +19,9 @@ export class RAGService {
     file: File
   ): Promise<number> {
 
+    const mimeType = ParserFactory.detectType(file);
     const parser = ParserFactory.getParser(
-      file.type,
+      mimeType,
       this.geminiService
     );
 
@@ -31,7 +32,8 @@ export class RAGService {
       this.chunkService.split(
         documentId,
         page.pageNumber,
-        page.text
+        page.text,
+        page.title
       )
     );
 

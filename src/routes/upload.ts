@@ -5,7 +5,7 @@ import { ChunkService } from "../services/ChunkService";
 import { GeminiService } from "../services/GeminiService";
 import { QdrantService } from "../services/QdrantService";
 import { RAGService } from "../services/RAGService";
-
+import { ParserFactory } from "../services/parsers/ParserFactory";
 import {
   QDRANT_URL,
   COLLECTION_NAME,
@@ -35,19 +35,14 @@ upload.post("/", async (c) => {
         400
       );
     }
-    const supportedTypes = [
-      "application/pdf",
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-    ];
 
-    if (!supportedTypes.includes(file.type)) {
+    const mimeType = ParserFactory.detectType(file);
+    if (!ParserFactory.supports(mimeType)) {
       return c.json(
         {
           success: false,
-          error: `Unsupported file type: ${file.type}`,
+          error: `Unsupported file type: ${mimeType}`,
+          supportedTypes: ParserFactory.supportedTypes(),
         },
         400
       );

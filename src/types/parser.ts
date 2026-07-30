@@ -1,5 +1,6 @@
 export interface ParsedPage {
     pageNumber: number;
+    title?: string;
     text: string;
 }
 

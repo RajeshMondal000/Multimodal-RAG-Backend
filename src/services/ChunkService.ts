@@ -2,7 +2,7 @@ import { CHUNK_OVERLAP, CHUNK_SIZE } from "../config";
 import { Chunk } from "../types/chunk";
 
 export class ChunkService {
-    split(documentId: string, page: number, text: string): Chunk[] {
+    split(documentId: string, page: number,  text: string, title?: string): Chunk[] {
         const cleaned = text.replace(/\s+/g, " ").trim();
 
         const chunks: Chunk[] = [];

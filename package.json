@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.12.4",
+    "@types/html-to-text": "^9.0.4",
     "@types/node": "^26.1.2",
     "typescript": "^5.5.2",
     "vitest": "~3.2.0",
@@ -19,9 +20,13 @@
   "dependencies": {
     "@google/genai": "^2.13.0",
     "@qdrant/js-client-rest": "^1.18.0",
+    "csv-parse": "^7.0.1",
     "hono": "^4.12.32",
+    "html-to-text": "^10.0.0",
     "langchain": "^1.5.4",
+    "mammoth": "^1.12.0",
     "unpdf": "^1.8.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   }
 }
