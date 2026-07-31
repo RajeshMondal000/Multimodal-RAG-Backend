@@ -1,24 +1,50 @@
 import { Hono } from "hono";
-
 import { randomUUID } from "crypto";
+
 import { ChunkService } from "../services/ChunkService";
 import { GeminiService } from "../services/GeminiService";
 import { QdrantService } from "../services/QdrantService";
 import { RAGService } from "../services/RAGService";
 import { ParserFactory } from "../services/parsers/ParserFactory";
+import { KVProgressReporter } from "../services/KVProgressReporter";
+
 import {
   QDRANT_URL,
   COLLECTION_NAME,
   VECTOR_SIZE,
 } from "../config";
 
-
 type Bindings = {
   GEMINI_API_KEY: string;
   QDRANT_API_KEY: string;
+  UPLOAD_JOBS: KVNamespace;
 };
 
 const upload = new Hono<{ Bindings: Bindings }>();
+
+/* ------------------------------------------------ */
+/* GET JOB STATUS                                   */
+/* ------------------------------------------------ */
+
+upload.get("/jobs/:id", async (c) => {
+  const job = await c.env.UPLOAD_JOBS.get(c.req.param("id"));
+
+  if (!job) {
+    return c.json(
+      {
+        success: false,
+        error: "Job not found",
+      },
+      404
+    );
+  }
+
+  return c.json(JSON.parse(job));
+});
+
+/* ------------------------------------------------ */
+/* UPLOAD DOCUMENT                                  */
+/* ------------------------------------------------ */
 
 upload.post("/", async (c) => {
   try {
@@ -37,6 +63,7 @@ upload.post("/", async (c) => {
     }
 
     const mimeType = ParserFactory.detectType(file);
+
     if (!ParserFactory.supports(mimeType)) {
       return c.json(
         {
@@ -47,7 +74,25 @@ upload.post("/", async (c) => {
         400
       );
     }
+
     const fileName = file.name;
+
+    const documentId = randomUUID();
+    const jobId = randomUUID();
+    const uploadedAt = new Date().toISOString();
+
+    /* ---------- Create Initial Job ---------- */
+
+    await c.env.UPLOAD_JOBS.put(
+      jobId,
+      JSON.stringify({
+        stage: "queued",
+        progress: 0,
+        message: "Waiting to start...",
+      })
+    );
+
+    /* ---------- Services ---------- */
 
     const qdrant = new QdrantService(
       QDRANT_URL,
@@ -56,6 +101,7 @@ upload.post("/", async (c) => {
     );
 
     await qdrant.ensureCollection(VECTOR_SIZE);
+
     const gemini = new GeminiService(
       c.env.GEMINI_API_KEY
     );
@@ -66,24 +112,30 @@ upload.post("/", async (c) => {
       qdrant
     );
 
-    const documentId = randomUUID();
+    const reporter = new KVProgressReporter(
+      c.env,
+      jobId
+    );
 
-    const uploadedAt = new Date().toISOString();
+    /* ---------- Ingest Document ---------- */
 
     const chunks = await rag.ingestDocument(
       documentId,
       fileName,
       uploadedAt,
-      file
+      file,
+      reporter
     );
 
     return c.json({
       success: true,
+      jobId,
       documentId,
       fileName,
       uploadedAt,
       chunks,
     });
+
   } catch (error) {
     console.error(error);
 
