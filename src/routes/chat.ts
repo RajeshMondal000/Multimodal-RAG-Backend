@@ -26,7 +26,7 @@ chat.post("/", async (c) => {
         const question = body.question?.trim();
         const documentId = body.documentId?.trim();
 
-        if (!documentId ) {
+        if (!documentId) {
             return c.json(
                 {
                     success: false,
@@ -86,14 +86,31 @@ chat.post("/", async (c) => {
             })),
         });
 
-    } catch (error) {
-        console.error("Full error:", error);
+    } catch (error: any) {
+        console.error("Chat generation error:", error);
 
+        // Catch 503 high demand/rate limit errors from Gemini API
+        if (
+            error?.status === 503 ||
+            error?.code === 503 ||
+            error?.message?.includes("503")
+        ) {
+            return c.json(
+                {
+                    success: false,
+                    answer: "The AI service is currently experiencing high demand. Please wait a few seconds and try sending your question again.",
+                    sources: [],
+                },
+                200
+            );
+        }
+
+        // Generic fallback error response
         return c.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : String(error),
-                details: error,
+                answer: "An unexpected error occurred while processing your request. Please try again.",
+                sources: [],
             },
             500
         );

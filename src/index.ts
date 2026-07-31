@@ -12,6 +12,18 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// 1. Enable CORS middleware BEFORE declaring routes
+app.use(
+  "*",
+  cors({
+    // Allows both default Vite dev ports (5173 & 5174)
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// 2. Health check route
 app.get("/", (c) => {
   return c.json({
     success: true,
@@ -19,15 +31,7 @@ app.get("/", (c) => {
   });
 });
 
-app.use(
-  "*",
-  cors({
-    origin: "http://localhost:5174",
-    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type"],
-  })
-);
-
+// 3. Mount sub-routers
 app.route("/upload", upload);
 app.route("/chat", chat);
 app.route("/documents", documents);
