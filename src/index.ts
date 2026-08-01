@@ -19,8 +19,17 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.use(
   "*",
   cors({
-    // Allows both default Vite dev ports (5173 & 5174)
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    origin: (origin) => {
+      const allowed = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "https://YOUR_PROJECT.pages.dev", // Replace after deployment
+      ];
+
+      return allowed.includes(origin) ? origin : "";
+    },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   })
@@ -44,7 +53,7 @@ export default {
   fetch: app.fetch,
   
   async scheduled(
-    event: ScheduledEvent,
+    _event: ScheduledEvent,
     env: Bindings,
     ctx: ExecutionContext
   ) {

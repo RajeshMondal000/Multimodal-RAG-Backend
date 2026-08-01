@@ -18,15 +18,15 @@
   "kv_namespaces": [
     {
       "binding": "UPLOAD_JOBS",
-      "id": "YOUR_KV_NAMESPACE_ID"
+      "id": "b32f1ec655b64327949b2749074f044a"
     },
     {
       "binding": "RATE_LIMITS",
-      "id": "yyyyyyyy"
+      "id": "daa3682c6cc646799a927fde2d090e2a"
     },
     {
       "binding": "DOCUMENTS",
-      "id": "..."
+      "id": "6d9d83297ea94e838c6603947a7b44b4"
     }
   ],
   "triggers": {
