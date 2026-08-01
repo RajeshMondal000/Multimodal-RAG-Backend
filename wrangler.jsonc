@@ -19,8 +19,21 @@
     {
       "binding": "UPLOAD_JOBS",
       "id": "YOUR_KV_NAMESPACE_ID"
+    },
+    {
+      "binding": "RATE_LIMITS",
+      "id": "yyyyyyyy"
+    },
+    {
+      "binding": "DOCUMENTS",
+      "id": "..."
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true
   },

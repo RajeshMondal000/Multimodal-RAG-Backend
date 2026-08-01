@@ -13,3 +13,34 @@ export const TOP_K = 5;
 export const CHUNK_SIZE = 1000;
 
 export const CHUNK_OVERLAP = 200;
+
+export const DOCUMENT_TTL_HOURS = 24;
+
+
+// config.ts
+
+export const UPLOAD_LIMITS = [
+    {
+        limit: 3,
+        windowSeconds: 60,
+        suffix: "minute",
+    },
+    {
+        limit: 10,
+        windowSeconds: 3600,
+        suffix: "hour",
+    },
+];
+
+export const CHAT_LIMITS = [
+    {
+        limit: 3,
+        windowSeconds: 60,
+        suffix: "minute",
+    },
+    {
+        limit: 20,
+        windowSeconds: 3600,
+        suffix: "hour",
+    },
+];

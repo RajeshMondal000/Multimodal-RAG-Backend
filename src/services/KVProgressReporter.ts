@@ -15,7 +15,7 @@ export class KVProgressReporter
 
     async update(progress: UploadProgress) {
 
-        await this.env.UPLOAD_JOBS.put(
+        await (this.env as Env & { UPLOAD_JOBS: KVNamespace }).UPLOAD_JOBS.put(
 
             this.jobId,
 

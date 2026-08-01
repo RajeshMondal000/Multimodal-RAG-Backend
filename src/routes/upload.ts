@@ -7,17 +7,21 @@ import { QdrantService } from "../services/QdrantService";
 import { RAGService } from "../services/RAGService";
 import { ParserFactory } from "../services/parsers/ParserFactory";
 import { KVProgressReporter } from "../services/KVProgressReporter";
+import { RateLimiter } from "../services/RateLimiter";
 
 import {
   QDRANT_URL,
   COLLECTION_NAME,
   VECTOR_SIZE,
+  UPLOAD_LIMITS,
 } from "../config";
 
 type Bindings = {
   GEMINI_API_KEY: string;
   QDRANT_API_KEY: string;
   UPLOAD_JOBS: KVNamespace;
+  RATE_LIMITS: KVNamespace;
+  DOCUMENTS: KVNamespace;
 };
 
 const upload = new Hono<{ Bindings: Bindings }>();
@@ -48,6 +52,32 @@ upload.get("/jobs/:id", async (c) => {
 
 upload.post("/", async (c) => {
   try {
+
+    // --- Rate Limiting Logic ---
+    const ip = c.req.header("CF-Connecting-IP") ?? "unknown";
+    const limiter = new RateLimiter(c.env.RATE_LIMITS);
+    const allowed = await limiter.check(`upload:${ip}`, UPLOAD_LIMITS);
+
+    if (!allowed) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "UPLOAD_RATE_LIMIT",
+            title: "Upload limit reached",
+            message:
+              "You've reached the upload limit.",
+            details:
+              "Please wait before uploading another document.",
+            retryAfter: "1 minute",
+            limit: 3,
+            window: "minute",
+          },
+        },
+        429
+      );
+    }
+
     const form = await c.req.formData();
 
     const file = form.get("file");
@@ -57,6 +87,19 @@ upload.post("/", async (c) => {
         {
           success: false,
           error: "No file uploaded.",
+        },
+        400
+      );
+    }
+
+    const MAX_SIZE = 20 * 1024 * 1024;
+
+    if (file.size > MAX_SIZE) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Maximum file size is 20 MB.",
         },
         400
       );
@@ -119,22 +162,66 @@ upload.post("/", async (c) => {
 
     /* ---------- Ingest Document ---------- */
 
-    const chunks = await rag.ingestDocument(
-      documentId,
-      fileName,
-      uploadedAt,
-      file,
-      reporter
+    /* ---------- Run ingestion in background ---------- */
+
+    c.executionCtx.waitUntil(
+      (async () => {
+        try {
+
+          await rag.ingestDocument(
+            documentId,
+            fileName,
+            uploadedAt,
+            file,
+            reporter
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+          await reporter.update({
+
+            stage: "failed",
+
+            progress: 100,
+
+            message:
+              error instanceof Error
+                ? error.message
+                : "Upload failed",
+
+          });
+
+        }
+      })()
     );
 
-    return c.json({
-      success: true,
-      jobId,
+    await c.env.DOCUMENTS.put(
       documentId,
+      JSON.stringify({
+        documentId,
+        fileName,
+        uploadedAt,
+      })
+    );
+    /* ---------- Return immediately ---------- */
+
+    return c.json({
+
+      success: true,
+
+      jobId,
+
+      documentId,
+
       fileName,
+
       uploadedAt,
-      chunks,
+
     });
+
+
 
   } catch (error) {
     console.error(error);

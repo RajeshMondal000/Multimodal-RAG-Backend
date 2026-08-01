@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-
+import { CHAT_LIMITS } from "../config";
 import {
     COLLECTION_NAME,
     QDRANT_URL,
@@ -11,16 +11,58 @@ import { QdrantService } from "../services/QdrantService";
 
 import { retrieveChunks } from "../rag/retrieval";
 import { buildPrompt } from "../rag/prompt";
+import { RateLimiter } from "../services/RateLimiter";
 
 type Bindings = {
     GEMINI_API_KEY: string;
     QDRANT_API_KEY: string;
+    RATE_LIMITS: KVNamespace;
+    DOCUMENTS: KVNamespace;
 };
 
 const chat = new Hono<{ Bindings: Bindings }>();
 
 chat.post("/", async (c) => {
     try {
+
+        // --- Rate Limiting Logic ---
+        const ip =
+            c.req.header("CF-Connecting-IP") ??
+            "unknown";
+
+        const limiter =
+            new RateLimiter(
+                c.env.RATE_LIMITS
+            );
+
+        const allowed =
+            await limiter.check(
+                `chat:${ip}`,
+                CHAT_LIMITS
+            );
+
+        if (!allowed) {
+
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: "CHAT_RATE_LIMIT",
+                        title: "Message limit reached",
+                        message:
+                            "You've reached the query limit.",
+                        details:
+                            "Please wait before asking more questions.",
+                        retryAfter: "1 minute",
+                        limit: 3,
+                        window: "minute",
+                    },
+                },
+                429
+            );
+
+        }
+
         const body = await c.req.json();
 
         const question = body.question?.trim();

@@ -3,11 +3,14 @@ import { cors } from "hono/cors";
 import upload from "./routes/upload";
 import chat from "./routes/chat";
 import documents from "./routes/documents";
+import { cleanupExpiredDocuments } from "./services/cleanup";
 
 type Bindings = {
   GEMINI_API_KEY: string;
   QDRANT_API_KEY: string;
   UPLOAD_JOBS: KVNamespace;
+  RATE_LIMITS: KVNamespace;
+  DOCUMENTS: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -36,4 +39,18 @@ app.route("/upload", upload);
 app.route("/chat", chat);
 app.route("/documents", documents);
 
-export default app;
+export default {
+
+  fetch: app.fetch,
+  
+  async scheduled(
+    event: ScheduledEvent,
+    env: Bindings,
+    ctx: ExecutionContext
+  ) {
+
+    ctx.waitUntil(cleanupExpiredDocuments(env));
+
+  },
+
+};

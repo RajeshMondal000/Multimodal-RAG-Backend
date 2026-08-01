@@ -9,6 +9,8 @@ import { QdrantService } from "../services/QdrantService";
 
 type Bindings = {
     QDRANT_API_KEY: string;
+    RATE_LIMITS: KVNamespace;
+    DOCUMENTS: KVNamespace;
 };
 
 const documents = new Hono<{ Bindings: Bindings }>();
@@ -63,6 +65,7 @@ documents.delete("/:documentId", async (c) => {
         );
 
         await qdrant.deleteDocument(documentId);
+        await c.env.DOCUMENTS.delete(documentId);
 
         return c.json({
             success: true,

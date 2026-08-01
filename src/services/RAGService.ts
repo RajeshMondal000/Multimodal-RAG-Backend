@@ -58,6 +58,18 @@ export class RAGService {
         page.title
       )
     );
+    const MAX_CHUNKS = 1000;
+
+    if (
+      chunks.length >
+      MAX_CHUNKS
+    ) {
+
+      throw new Error(
+        `Document exceeds ${MAX_CHUNKS} chunks.`
+      );
+
+    }
 
     await reporter?.update({
 
