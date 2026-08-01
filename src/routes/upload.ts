@@ -56,9 +56,13 @@ upload.post("/", async (c) => {
     // --- Rate Limiting Logic ---
     const ip = c.req.header("CF-Connecting-IP") ?? "unknown";
     const limiter = new RateLimiter(c.env.RATE_LIMITS);
-    const allowed = await limiter.check(`upload:${ip}`, UPLOAD_LIMITS);
+    const result = await limiter.check(
+      `upload:${ip}`,
+      UPLOAD_LIMITS
+    );
 
-    if (!allowed) {
+    if (!result.allowed) {
+
       return c.json(
         {
           success: false,

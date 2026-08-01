@@ -35,13 +35,13 @@ chat.post("/", async (c) => {
                 c.env.RATE_LIMITS
             );
 
-        const allowed =
-            await limiter.check(
-                `chat:${ip}`,
-                CHAT_LIMITS
-            );
+        const result = await limiter.check(
+            `chat:${ip}`,
+            CHAT_LIMITS
+        );
 
-        if (!allowed) {
+        if (!result.allowed) {
+
 
             return c.json(
                 {
@@ -144,6 +144,24 @@ chat.post("/", async (c) => {
                     sources: [],
                 },
                 200
+            );
+        }
+
+        const message =
+            error instanceof Error ? error.message : String(error);
+
+        if (message.includes("RESOURCE_EXHAUSTED")) {
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: "GEMINI_QUOTA_EXCEEDED",
+                        title: "AI quota reached",
+                        message:
+                            "The AI service has reached its daily usage limit. Please try again later.",
+                    },
+                },
+                429
             );
         }
 
