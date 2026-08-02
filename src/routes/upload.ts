@@ -227,19 +227,65 @@ upload.post("/", async (c) => {
 
 
 
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+
+    console.error("Upload error:", error);
+
+    const message =
+      error?.message ?? "Upload failed.";
+
+    // Gemini quota exceeded
+    if (message.includes("RESOURCE_EXHAUSTED")) {
+
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "GEMINI_QUOTA",
+            title: "Daily AI quota reached",
+            message:
+              "The AI service has reached its daily usage limit. Please try again later.",
+          },
+        },
+        429
+      );
+
+    }
+
+    // Unsupported region
+    if (
+      message.includes("FAILED_PRECONDITION") ||
+      message.includes("User location is not supported")
+    ) {
+
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "LOCATION_NOT_SUPPORTED",
+            title: "Location not supported",
+            message:
+              "The Gemini API is not available in the deployment region.",
+          },
+        },
+        400
+      );
+
+    }
 
     return c.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error),
+        error: {
+          code: "UPLOAD_ERROR",
+          title: "Upload Failed",
+          message:
+            "Something went wrong while processing the document.",
+        },
       },
       500
     );
+
   }
 });
 
