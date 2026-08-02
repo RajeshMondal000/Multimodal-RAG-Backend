@@ -14,7 +14,7 @@ export const CHUNK_SIZE = 1000;
 
 export const CHUNK_OVERLAP = 200;
 
-export const DOCUMENT_TTL_HOURS = 24;
+export const DOCUMENT_TTL_HOURS = 0.5;
 
 
 // config.ts

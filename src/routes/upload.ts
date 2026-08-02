@@ -70,7 +70,7 @@ upload.post("/", async (c) => {
             code: "UPLOAD_RATE_LIMIT",
             title: "Upload limit reached",
             message:
-              "You've reached the upload limit.",
+              "You've reached the upload limit. (3 uploads per minute)",
             details:
               "Please wait before uploading another document.",
             retryAfter: "1 minute",

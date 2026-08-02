@@ -41,18 +41,14 @@ chat.post("/", async (c) => {
         );
 
         if (!result.allowed) {
-
-
             return c.json(
                 {
                     success: false,
                     error: {
                         code: "CHAT_RATE_LIMIT",
                         title: "Message limit reached",
-                        message:
-                            "You've reached the query limit.",
-                        details:
-                            "Please wait before asking more questions.",
+                        message: "You've reached the query limit. (3 queries per minute)",
+                        details: "Please wait before asking more questions.",
                         retryAfter: "1 minute",
                         limit: 3,
                         window: "minute",
@@ -60,7 +56,6 @@ chat.post("/", async (c) => {
                 },
                 429
             );
-
         }
 
         const body = await c.req.json();
