@@ -63,6 +63,9 @@ chat.post("/", async (c) => {
         const question = body.question?.trim();
         const documentId = body.documentId?.trim();
 
+        const useGeneralKnowledge =
+    body.useGeneralKnowledge ?? false;
+
         if (!documentId) {
             return c.json(
                 {
@@ -104,7 +107,7 @@ chat.post("/", async (c) => {
         console.log("Retrieved chunks:");
         console.dir(chunks, { depth: null });
 
-        const prompt = buildPrompt(question, chunks);
+        const prompt = buildPrompt(question, chunks, useGeneralKnowledge);
 
         console.log("Prompt:");
         console.log(prompt);
