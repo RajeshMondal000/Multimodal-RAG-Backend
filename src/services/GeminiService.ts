@@ -29,6 +29,7 @@ export class GeminiService {
     return embedding;
   }
 
+
   async generateAnswer(prompt: string): Promise<string> {
     const response = await this.client.models.generateContent({
       model: CHAT_MODEL,

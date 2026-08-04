@@ -1,28 +1,12 @@
 import { Chunk } from "../types/chunk";
-import { embedChunks } from "./embedding";
-import { GeminiService } from "../services/GeminiService";
 import { QdrantService } from "../services/QdrantService";
 import type { ProgressReporter } from "../services/ProgressReporter";
 
 export async function ingestChunks(
-    gemini: GeminiService,
     qdrant: QdrantService,
     chunks: Chunk[],
-    fileName: string,
-    uploadedAt: string,
     reporter?: ProgressReporter
 ): Promise<number> {
-
-    const embedded = await embedChunks(
-        gemini,
-        chunks,
-        reporter
-    );
-
-    embedded.forEach((chunk) => {
-        chunk.fileName = fileName;
-        chunk.uploadedAt = uploadedAt;
-    });
 
     await reporter?.update({
 
@@ -30,10 +14,10 @@ export async function ingestChunks(
 
         progress: 95,
 
-        message: `Saving ${embedded.length} vectors to Qdrant`
+        message: `Saving ${chunks.length} vectors to Qdrant`
 
     });
-    await qdrant.upsertChunks(embedded);
+    await qdrant.upsertChunks(chunks);
     await reporter?.update({
 
         stage: "complete",
@@ -43,5 +27,5 @@ export async function ingestChunks(
         message: "Upload complete"
 
     });
-    return embedded.length;
+    return chunks.length;
 }

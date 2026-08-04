@@ -5,6 +5,7 @@ import { ChunkService } from "../services/ChunkService";
 import { GeminiService } from "../services/GeminiService";
 import { QdrantService } from "../services/QdrantService";
 import { RAGService } from "../services/RAGService";
+import { DocumentStore } from "../services/DocumentStore";
 import { ParserFactory } from "../services/parsers/ParserFactory";
 import { KVProgressReporter } from "../services/KVProgressReporter";
 import { RateLimiter } from "../services/RateLimiter";
@@ -12,7 +13,6 @@ import { RateLimiter } from "../services/RateLimiter";
 import {
   QDRANT_URL,
   COLLECTION_NAME,
-  VECTOR_SIZE,
   UPLOAD_LIMITS,
 } from "../config";
 
@@ -147,16 +147,17 @@ upload.post("/", async (c) => {
       c.env.QDRANT_API_KEY
     );
 
-    await qdrant.ensureCollection(VECTOR_SIZE);
-
     const gemini = new GeminiService(
       c.env.GEMINI_API_KEY
     );
 
+    const documentStore = new DocumentStore(c.env.DOCUMENTS);
+
     const rag = new RAGService(
       new ChunkService(),
       gemini,
-      qdrant
+      qdrant,
+      documentStore
     );
 
     const reporter = new KVProgressReporter(
@@ -172,13 +173,40 @@ upload.post("/", async (c) => {
       (async () => {
         try {
 
-          await rag.ingestDocument(
+          const chunks = await rag.prepareDocument(
             documentId,
             fileName,
             uploadedAt,
             file,
             reporter
           );
+
+          await documentStore.saveChunks(
+            documentId,
+            chunks
+          );
+
+          await documentStore.saveMetadata({
+            documentId,
+            fileName,
+            uploadedAt,
+            indexed: false,
+          });
+
+          await documentStore.markIndexed(
+            documentId,
+            false
+          );
+
+          await reporter.update({
+
+            stage: "complete",
+
+            progress: 100,
+
+            message: "Ready",
+
+          });
 
         } catch (error) {
 
@@ -201,14 +229,6 @@ upload.post("/", async (c) => {
       })()
     );
 
-    await c.env.DOCUMENTS.put(
-      documentId,
-      JSON.stringify({
-        documentId,
-        fileName,
-        uploadedAt,
-      })
-    );
     /* ---------- Return immediately ---------- */
 
     return c.json({

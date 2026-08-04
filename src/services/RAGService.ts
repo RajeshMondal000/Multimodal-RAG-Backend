@@ -1,25 +1,29 @@
 import { ChunkService } from "./ChunkService";
 import { GeminiService } from "./GeminiService";
 import { QdrantService } from "./QdrantService";
+import { DocumentStore } from "./DocumentStore";
 
+import { embedChunks } from "../rag/embedding";
 import { ingestChunks } from "../rag/ingestion";
 import { ParserFactory } from "./parsers/ParserFactory";
 import { ProgressReporter } from "./ProgressReporter";
+import type { Chunk } from "../types/chunk";
 
 export class RAGService {
   constructor(
     private chunkService: ChunkService,
     private geminiService: GeminiService,
-    private qdrantService: QdrantService
+    private qdrantService: QdrantService,
+    private documentStore: DocumentStore
   ) { }
 
-  async ingestDocument(
+  async prepareDocument(
     documentId: string,
     fileName: string,
     uploadedAt: string,
     file: File,
     reporter?: ProgressReporter
-  ): Promise<number> {
+  ): Promise<Chunk[]> {
 
     const mimeType = ParserFactory.detectType(file);
     const parser = ParserFactory.getParser(
@@ -71,6 +75,35 @@ export class RAGService {
 
     }
 
+    return chunks.map((chunk) => ({
+      ...chunk,
+      fileName,
+      uploadedAt,
+    }));
+  }
+
+  async indexDocument(
+    documentId: string,
+    reporter?: ProgressReporter
+  ): Promise<number> {
+
+    const metadata = await this.documentStore.getDocument(documentId);
+
+    if (!metadata) {
+      throw new Error(`Document ${documentId} not found.`);
+    }
+
+    if (metadata.indexed) {
+      const chunks = await this.documentStore.getChunks(documentId);
+      return chunks.length;
+    }
+
+    const chunks = await this.documentStore.getChunks(documentId);
+
+    if (!chunks.length) {
+      throw new Error(`No chunks found for document ${documentId}.`);
+    }
+
     await reporter?.update({
 
       stage: "embedding",
@@ -85,36 +118,20 @@ export class RAGService {
 
     });
 
-    // 3. Generate embeddings + store in Qdrant
-    await ingestChunks(
+    const embedded = await embedChunks(
       this.geminiService,
-      this.qdrantService,
       chunks,
-      fileName,
-      uploadedAt,
       reporter
     );
 
-    await reporter?.update({
+    await ingestChunks(
+      this.qdrantService,
+      embedded,
+      reporter
+    );
 
-      stage: "saving",
+    await this.documentStore.markIndexed(documentId, true);
 
-      progress: 95,
-
-      message: "Saving vectors"
-
-    });
-
-    await reporter?.update({
-
-      stage: "complete",
-
-      progress: 100,
-
-      message: "Ready"
-
-    });
-
-    return chunks.length;
+    return embedded.length;
   }
 }

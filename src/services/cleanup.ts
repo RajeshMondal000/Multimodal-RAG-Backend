@@ -1,4 +1,5 @@
 import { QdrantService } from "./QdrantService";
+import { DocumentStore } from "./DocumentStore";
 import { DOCUMENT_TTL_HOURS } from "../config";
 import {
     COLLECTION_NAME,
@@ -23,12 +24,17 @@ export async function cleanupExpiredDocuments(
         COLLECTION_NAME,
         env.QDRANT_API_KEY
     );
+    const documentStore = new DocumentStore(env.DOCUMENTS);
 
     const cutoff =
         Date.now() -
         DOCUMENT_TTL_HOURS * 60 * 60 * 1000;
 
     for (const key of list.keys) {
+
+        if (key.name.endsWith(":chunks")) {
+            continue;
+        }
 
         const value =
             await env.DOCUMENTS.get(key.name);
@@ -51,8 +57,8 @@ export async function cleanupExpiredDocuments(
             doc.documentId
         );
 
-        await env.DOCUMENTS.delete(
-            key.name
+        await documentStore.deleteDocument(
+            doc.documentId
         );
 
     }

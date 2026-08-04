@@ -5,6 +5,7 @@ import {
     QDRANT_URL,
 } from "../config";
 
+import { DocumentStore } from "../services/DocumentStore";
 import { QdrantService } from "../services/QdrantService";
 
 type Bindings = {
@@ -63,9 +64,10 @@ documents.delete("/:documentId", async (c) => {
             COLLECTION_NAME,
             c.env.QDRANT_API_KEY
         );
+        const documentStore = new DocumentStore(c.env.DOCUMENTS);
 
         await qdrant.deleteDocument(documentId);
-        await c.env.DOCUMENTS.delete(documentId);
+        await documentStore.deleteDocument(documentId);
 
         return c.json({
             success: true,
@@ -94,8 +96,10 @@ documents.delete("/", async (c) => {
             COLLECTION_NAME,
             c.env.QDRANT_API_KEY
         );
+        const documentStore = new DocumentStore(c.env.DOCUMENTS);
 
         await qdrant.deleteAllDocuments();
+        await documentStore.deleteAll();
 
         return c.json({
             success: true,

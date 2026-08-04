@@ -7,7 +7,10 @@ import {
 } from "../config";
 
 import { GeminiService } from "../services/GeminiService";
+import { ChunkService } from "../services/ChunkService";
 import { QdrantService } from "../services/QdrantService";
+import { RAGService } from "../services/RAGService";
+import { DocumentStore } from "../services/DocumentStore";
 
 import { retrieveChunks } from "../rag/retrieval";
 import { buildPrompt } from "../rag/prompt";
@@ -89,13 +92,42 @@ chat.post("/", async (c) => {
             c.env.GEMINI_API_KEY
         );
 
+        const doc = await c.env.DOCUMENTS.get(documentId);
+
+        if (!doc) {
+            return c.json(
+                {
+                    success: false,
+                    error: "Document not found.",
+                },
+                404
+            );
+        }
+
+        const metadata = JSON.parse(doc) as {
+            indexed?: boolean;
+        };
+
         const qdrant = new QdrantService(
             QDRANT_URL,
             COLLECTION_NAME,
             c.env.QDRANT_API_KEY
         );
 
+        const documentStore = new DocumentStore(c.env.DOCUMENTS);
+
+        const rag = new RAGService(
+            new ChunkService(),
+            gemini,
+            qdrant,
+            documentStore
+        );
+
         await qdrant.ensureCollection(VECTOR_SIZE);
+
+        if (!metadata.indexed) {
+            await rag.indexDocument(documentId);
+        }
 
         const chunks = await retrieveChunks(
             gemini,
