@@ -18,13 +18,9 @@ const documents = new Hono<{ Bindings: Bindings }>();
 
 documents.get("/", async (c) => {
     try {
-        const qdrant = new QdrantService(
-            QDRANT_URL,
-            COLLECTION_NAME,
-            c.env.QDRANT_API_KEY
-        );
+        const documentStore = new DocumentStore(c.env.DOCUMENTS);
 
-        const docs = await qdrant.listDocuments();
+        const docs = await documentStore.listDocuments();
 
         return c.json({
             success: true,

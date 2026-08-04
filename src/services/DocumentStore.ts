@@ -1,5 +1,13 @@
 import type { Chunk } from "../types/chunk";
 
+export interface DocumentInfo {
+	documentId: string;
+	fileName: string;
+	uploadedAt: string;
+	chunks: number;
+	indexed: boolean;
+}
+
 export interface DocumentMetadata {
 	documentId: string;
 	fileName: string;
@@ -59,6 +67,34 @@ export class DocumentStore {
 		}
 
 		return JSON.parse(value) as Chunk[];
+	}
+
+	async listDocuments(): Promise<DocumentInfo[]> {
+		const list = await this.documents.list();
+		const documents = list.keys.filter((key) => !key.name.endsWith(":chunks"));
+
+		const results = await Promise.all(
+			documents.map(async (key) => {
+				const value = await this.documents.get(key.name);
+
+				if (!value) {
+					return null;
+				}
+
+				const metadata = JSON.parse(value) as DocumentMetadata;
+				const chunks = await this.getChunks(metadata.documentId);
+
+				return {
+					documentId: metadata.documentId,
+					fileName: metadata.fileName,
+					uploadedAt: metadata.uploadedAt,
+					indexed: metadata.indexed,
+					chunks: chunks.length,
+				};
+			})
+		);
+
+		return results.filter((document): document is DocumentInfo => document !== null);
 	}
 
 	async markIndexed(
