@@ -50,7 +50,7 @@ chat.post("/", async (c) => {
                     error: {
                         code: "CHAT_RATE_LIMIT",
                         title: "Message limit reached",
-                        message: "You've reached the query limit. (3 queries per minute)",
+                        message: "You've reached the query limit.",
                         details: "Please wait before asking more questions.",
                         retryAfter: "1 minute",
                         limit: 3,
