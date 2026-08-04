@@ -193,11 +193,6 @@ upload.post("/", async (c) => {
             indexed: false,
           });
 
-          await documentStore.markIndexed(
-            documentId,
-            false
-          );
-
           await reporter.update({
 
             stage: "complete",

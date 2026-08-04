@@ -29,6 +29,23 @@ export class GeminiService {
     return embedding;
   }
 
+  async createEmbeddings(texts: string[]): Promise<number[][]> {
+    const response = await this.client.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: texts.map((text) => ({
+        parts: [{ text }],
+      })) as any,
+    });
+
+    const embeddings = response.embeddings?.map((embedding) => embedding.values);
+
+    if (!embeddings?.length) {
+      throw new Error("Failed to generate embeddings.");
+    }
+
+    return embeddings;
+  }
+
 
   async generateAnswer(prompt: string): Promise<string> {
     const response = await this.client.models.generateContent({

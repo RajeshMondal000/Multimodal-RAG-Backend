@@ -21,19 +21,17 @@ export async function embedChunks(
             start + BATCH_SIZE
         );
 
-        const results = await Promise.all(
-
-            batch.map(async (chunk) => ({
-
-                ...chunk,
-
-                embedding: await gemini.createEmbedding(
-                    chunk.text
-                ),
-
-            }))
-
+        const embeddings = await gemini.createEmbeddings(
+            batch.map((chunk) => chunk.text)
         );
+
+        const results = batch.map((chunk, index) => ({
+
+            ...chunk,
+
+            embedding: embeddings[index],
+
+        }));
 
         embedded.push(...results);
 
